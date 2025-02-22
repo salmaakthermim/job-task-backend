@@ -33,15 +33,28 @@ async function run() {
 
     // **Create a Task**
     app.post("/tasks", async (req, res) => {
-      const task = { ...req.body, timestamp: new Date() }; // Add timestamp
-      const result = await taskCollection.insertOne(task);
-      res.send(result);
+      try {
+        const task = { ...req.body, timestamp: new Date() };
+        const result = await taskCollection.insertOne(task);
+    
+        if (result.acknowledged) {
+          res.send({ _id: result.insertedId, ...task }); // Return the new task with _id
+        } else {
+          res.status(500).send({ error: "Failed to add task" });
+        }
+      } catch (error) {
+        res.status(500).send({ error: "Internal Server Error" });
+      }
     });
 
     // **Get All Tasks**
     app.get("/tasks", async (req, res) => {
-      const tasks = await taskCollection.find().toArray();
-      res.send(tasks);
+      try {
+        const tasks = await taskCollection.find().toArray();
+        res.send(tasks);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch tasks" });
+      }
     });
 
     // **Update a Task**
@@ -49,7 +62,7 @@ async function run() {
       const { id } = req.params;
       const updatedTask = req.body;
       const result = await taskCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(id) }, // Use ObjectId properly
         { $set: updatedTask }
       );
       res.send(result);
@@ -60,8 +73,7 @@ async function run() {
       const { id } = req.params;
       const result = await taskCollection.deleteOne({ _id: new ObjectId(id) });
       res.send(result);
-    })
-   ;
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
